@@ -6,6 +6,12 @@ const app = express();
 const { PORT = 3001 } = process.env;
 
 app.use(express.json());
+app.use((req, res, next) => {
+  req.user = {
+    _id: "67380284c6c6be87ba98978a",
+  };
+  next();
+});
 app.use("/", mainRouter);
 
 mongoose

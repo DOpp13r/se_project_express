@@ -43,7 +43,7 @@ const deleteItem = (req, res) => {
     .findByIdAndDelete(itemId)
     .orFail()
     .then((item) =>
-      res.status(200).send(item /*,{ message: "Item has been deleted" } */)
+      res.status(200).send(item, { message: "Item has been deleted" })
     )
     .catch((err) => {
       console.error(err);

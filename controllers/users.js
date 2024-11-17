@@ -45,15 +45,15 @@ const getUserById = (req, res) => {
         return res
           .status(NOT_FOUND_SC.code)
           .send({ message: NOT_FOUND_SC.message });
-      } else if (err.name === "CastError") {
+      }
+      if (err.name === "CastError") {
         return res
           .status(BAD_REQUEST_SC.code)
           .send({ message: BAD_REQUEST_SC.message });
-      } else {
-        return res
-          .status(SERVER_ERROR_SC.code)
-          .send({ message: SERVER_ERROR_SC.message });
       }
+      return res
+        .status(SERVER_ERROR_SC.code)
+        .send({ message: SERVER_ERROR_SC.message });
     });
 };
 

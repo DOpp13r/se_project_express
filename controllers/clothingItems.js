@@ -94,7 +94,12 @@ const likeItem = (req, res) => {
     })
     .catch((err) => {
       console.error(err);
-      res
+      if (err.statusCode === NOT_FOUND_SC.code) {
+        return res
+          .status(NOT_FOUND_SC.code)
+          .send({ message: NOT_FOUND_SC.message });
+      }
+      return res
         .status(SERVER_ERROR_SC.code)
         .send({ message: SERVER_ERROR_SC.message });
     });

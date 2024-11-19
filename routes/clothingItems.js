@@ -11,7 +11,7 @@ const {
 router.get("/", getItems);
 router.post("/", createItem);
 router.delete("/:itemId", deleteItem);
-router.put("/:itemId/like", likeItem);
-router.put("/:itemId/dislike", dislikeItem);
+router.put("/:itemId/likes", likeItem);
+router.delete("/:itemId/likes", dislikeItem);
 
 module.exports = router;

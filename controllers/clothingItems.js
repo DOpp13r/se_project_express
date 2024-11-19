@@ -8,7 +8,7 @@ const {
 const getItems = (req, res) => {
   clothingItem
     .find({})
-    .then((items) => res.status(200).send(items))
+    .then((items) => res.status(200).send({ data: items }))
     .catch(() => {
       res
         .status(SERVER_ERROR_SC.code)
@@ -21,7 +21,7 @@ const createItem = (req, res) => {
   const owner = req.user._id;
   clothingItem
     .create({ name, weather, imageUrl, owner })
-    .then((item) => res.status(201).send({ data: item }))
+    .then((item) => res.status(201).send({ item }))
     .catch((err) => {
       console.error(err);
       if (err.name === "ValidationError") {
@@ -42,9 +42,7 @@ const deleteItem = (req, res) => {
   clothingItem
     .findByIdAndDelete(itemId)
     .orFail()
-    .then((item) =>
-      res.status(200).send(item /*,{ message: "Item has been deleted" } */)
-    )
+    .then(() => res.status(200).send({ message: "Item deleted" }))
     .catch((err) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {
@@ -52,7 +50,7 @@ const deleteItem = (req, res) => {
           .status(NOT_FOUND_SC.code)
           .send({ message: NOT_FOUND_SC.message });
       }
-      if (err.name === "RequestError") {
+      if (err.name === "CastError") {
         return res
           .status(BAD_REQUEST_SC.code)
           .send({ message: BAD_REQUEST_SC.message });

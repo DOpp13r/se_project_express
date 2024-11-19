@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const clothingItem = require("../models/clothingItem");
 const {
   BAD_REQUEST_SC,
@@ -42,7 +43,7 @@ const deleteItem = (req, res) => {
   clothingItem
     .findByIdAndDelete(itemId)
     .orFail()
-    .then(() => res.status(200).send({ message: "Item deleted" }))
+    .then((item) => res.status(200).send({ message: "Item deleted" }))
     .catch((err) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {
@@ -62,47 +63,76 @@ const deleteItem = (req, res) => {
 };
 
 const likeItem = (req, res) => {
+  const { itemId } = req.params;
+  console.log(itemId);
+
+  // Validate the itemId
+  if (!mongoose.Types.ObjectId.isValid(itemId)) {
+    return res
+      .status(BAD_REQUEST_SC.code)
+      .send({ message: BAD_REQUEST_SC.message });
+  }
+
   clothingItem
     .findByIdAndUpdate(
-      req.params.itemId,
+      itemId,
       { $addToSet: { likes: req.user._id } },
       { new: true }
     )
-    .orFail()
-    .then((item) => res.status(200).send(item))
-    .catch((err) => {
-      console.error(err);
-      if (err.name === "ValidationError" || err.name === "CastError") {
-        return res
-          .status(BAD_REQUEST_SC.code)
-          .send({ message: BAD_REQUEST_SC.message });
-      }
-      if (err.name === "DocumentNotFoundError") {
+    .orFail(() => {
+      const error = new Error("Item ID not found");
+      error.statusCode = NOT_FOUND_SC.code;
+      throw error;
+    })
+    .then((item) => {
+      if (!item) {
         return res
           .status(NOT_FOUND_SC.code)
-          .send({ message: NOT_FOUND_SC.message });
+          .send({ message: "Item not found" });
       }
-      return res
+      return res.status(200).send({ item });
+    })
+    .catch((err) => {
+      console.error(err);
+      res
         .status(SERVER_ERROR_SC.code)
         .send({ message: SERVER_ERROR_SC.message });
     });
 };
 
 const dislikeItem = (req, res) => {
+  const { itemId } = req.params;
+  console.log(`Disliking item with ID: ${itemId}`);
+
+  // Validate the itemId
+  if (!mongoose.Types.ObjectId.isValid(itemId)) {
+    return res
+      .status(BAD_REQUEST_SC.code)
+      .send({ message: BAD_REQUEST_SC.message });
+  }
+
   clothingItem
     .findByIdAndUpdate(
-      req.params.itemId,
+      itemId,
       { $pull: { likes: req.user._id } },
       { new: true }
     )
-    .orFail()
-    .then((item) => res.status(200).send(item))
+    .orFail(() => {
+      const error = new Error("Item ID not found");
+      error.statusCode = NOT_FOUND_SC.code;
+      throw error;
+    })
+    .then((item) => {
+      if (!item) {
+        return res
+          .status(NOT_FOUND_SC.code)
+          .send({ message: "Item not found" });
+      }
+      return res.status(200).send({ item });
+    })
     .catch((err) => {
       console.error(err);
-      if (err.name === "ValidationError" || err.name === "CastError") {
-        return res.status(BAD_REQUEST_SC.code).send({ message: err.message });
-      }
-      if (err.name === "DocumentNotFoundError") {
+      if (err.statusCode === NOT_FOUND_SC.code) {
         return res
           .status(NOT_FOUND_SC.code)
           .send({ message: NOT_FOUND_SC.message });

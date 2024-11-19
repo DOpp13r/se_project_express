@@ -43,7 +43,7 @@ const deleteItem = (req, res) => {
   clothingItem
     .findByIdAndDelete(itemId)
     .orFail()
-    .then((item) => res.status(200).send({ message: "Item deleted" }))
+    .then((item) => res.status(200).send({ item, message: "Item deleted" }))
     .catch((err) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {
@@ -73,17 +73,12 @@ const likeItem = (req, res) => {
       .send({ message: BAD_REQUEST_SC.message });
   }
 
-  clothingItem
+  return clothingItem
     .findByIdAndUpdate(
       itemId,
       { $addToSet: { likes: req.user._id } },
       { new: true }
     )
-    .orFail(() => {
-      const error = new Error("Item ID not found");
-      error.statusCode = NOT_FOUND_SC.code;
-      throw error;
-    })
     .then((item) => {
       if (!item) {
         return res
@@ -116,17 +111,12 @@ const dislikeItem = (req, res) => {
       .send({ message: BAD_REQUEST_SC.message });
   }
 
-  clothingItem
+  return clothingItem
     .findByIdAndUpdate(
       itemId,
       { $pull: { likes: req.user._id } },
       { new: true }
     )
-    .orFail(() => {
-      const error = new Error("Item ID not found");
-      error.statusCode = NOT_FOUND_SC.code;
-      throw error;
-    })
     .then((item) => {
       if (!item) {
         return res

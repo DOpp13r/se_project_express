@@ -1,6 +1,6 @@
-const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const User = require("../models/user");
 const { JWT_SECRET } = require("../utils/config");
 
 const {
@@ -51,16 +51,16 @@ const getCurrentUser = (req, res) => {
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
 
-  if (!email || !password) {
+  if (!name || !avatar || !email || !password) {
     return res
       .status(BAD_REQUEST_SC.code)
-      .send({ message: BAD_REQUEST_SC.message });
+      .send({ message: "All fields are required" });
   }
 
   User.findOne({ email })
     .then((existingUser) => {
       if (existingUser) {
-        return res.status
+        return res
           .status(DUPLICATE_ERROR_SC.code)
           .send({ message: "Email already exists" });
       }
@@ -209,8 +209,8 @@ const updateProfile = (req, res) => {
           .send({ message: BAD_REQUEST_SC.message });
       }
       return res
-        .status(INTERNAL_SERVER_ERROR_SC.code)
-        .send({ message: INTERNAL_SERVER_ERROR_SC.message });
+        .status(SERVER_ERROR_SC.code)
+        .send({ message: SERVER_ERROR_SC.message });
     });
 };
 

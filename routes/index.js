@@ -6,8 +6,6 @@ const auth = require("../middlewares/auth");
 
 const { NOT_FOUND_SC } = require("../utils/errors");
 
-router.use("/signin", (req, res) => res.send("Signin route"));
-router.use("/signup", (req, res) => res.send("Signup route"));
 router.use(auth);
 
 router.use("/users", userRouter);

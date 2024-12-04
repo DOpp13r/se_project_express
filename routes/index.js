@@ -3,7 +3,12 @@ const router = express.Router();
 
 const userRouter = require("./users");
 const clothingItemsRouter = require("./clothingItems");
+
+const auth = require("../middlewares/auth");
+
 const { NOT_FOUND_SC } = require("../utils/errors");
+
+router.use(auth);
 
 router.use("/users", userRouter);
 router.use("/items", clothingItemsRouter);

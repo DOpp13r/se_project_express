@@ -11,20 +11,35 @@ const {
   SERVER_ERROR_SC,
 } = require("../utils/errors");
 
-const getCurrentUser = (req, res) => {
-  const userId = req.user._id;
+// const getUsers = (req, res) => {
+//   User.find({})
+//     .then((users) => res.status(200).send(users))
+//     .catch((err) => {
+//       console.log(err);
+//       return res
+//         .status(SERVER_ERROR_SC.code)
+//         .send({ message: SERVER_ERROR_SC.message });
+//     });
+// };
 
-  User.findById(userId)
-    .orFail()
-    .then((user) =>
-      res.send({
-        user: {
-          name: user.name,
-          email: user.email,
-          avatar: user.avatar,
-        },
-      })
-    )
+const getCurrentUser = (req, res) => {
+  const { _id } = req.user;
+
+  User.findById(_id)
+    .then((data) => {
+      const user = {
+        _id: data._id,
+        name: data.name,
+        email: data.email,
+        avatar: data.avatar,
+      };
+      if (!user) {
+        return res
+          .status(NOT_FOUND_SC.code)
+          .send({ message: NOT_FOUND_SC.message });
+      }
+      return res.status(200).send(user);
+    })
     .catch((err) => {
       console.log(err);
       return res
@@ -36,52 +51,108 @@ const getCurrentUser = (req, res) => {
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
 
-  if (!email || !password) {
+  if (!name || !avatar || !email || !password) {
     return res
       .status(BAD_REQUEST_SC.code)
       .send({ message: "All fields are required" });
   }
 
-  return User.findOne({ email }).then((existingUser) => {
-    if (existingUser) {
-      return res
-        .status(DUPLICATE_ERROR_SC.code)
-        .send({ message: "Email already exists" });
-    }
-
-    return bcrypt
-      .hash(password, 10)
-      .then((hashedPassword) =>
-        User.create({
-          name,
-          avatar,
-          email,
-          password: hashedPassword,
-        })
-      )
-      .then((user) =>
-        res.send({
-          user: { name: user.name, email: user.email, avatar: user.avatar },
-        })
-      )
-      .catch((err) => {
-        console.log(err);
-        if (err.code === 11000) {
-          return res
-            .status(DUPLICATE_ERROR_SC.code)
-            .send({ message: DUPLICATE_ERROR_SC.message });
-        }
-        if (err.name === "ValidationError") {
-          return res
-            .status(BAD_REQUEST_SC.code)
-            .send({ message: BAD_REQUEST_SC.message });
-        }
+  User.findOne({ email })
+    .then((existingUser) => {
+      if (existingUser) {
         return res
-          .status(SERVER_ERROR_SC.code)
-          .send({ message: SERVER_ERROR_SC.message });
-      });
-  });
+          .status(DUPLICATE_ERROR_SC.code)
+          .send({ message: "Email already exists" });
+      }
+
+      return bcrypt
+        .hash(password, 10)
+        .then((hashedPassword) =>
+          User.create({
+            name,
+            avatar,
+            email,
+            password: hashedPassword,
+          })
+        )
+        .then((user) => {
+          const { password: UserPassword, ...userWithoutPassword } =
+            user.toObject();
+          return res.status(201).send(userWithoutPassword);
+        })
+        .catch((err) => {
+          console.log(err);
+          if (err.code === 11000) {
+            return res
+              .status(DUPLICATE_ERROR_SC.code)
+              .send({ message: DUPLICATE_ERROR_SC.message });
+          }
+          if (err.name === "ValidationError") {
+            return res
+              .status(BAD_REQUEST_SC.code)
+              .send({ message: BAD_REQUEST_SC.message });
+          }
+          return res
+            .status(SERVER_ERROR_SC.code)
+            .send({ message: SERVER_ERROR_SC.message });
+        });
+    })
+    .catch((err) => {
+      console.log(err);
+      if (err.code === 11000) {
+        return res
+          .status(DUPLICATE_ERROR_SC.code)
+          .send({ message: DUPLICATE_ERROR_SC.message });
+      }
+      if (err.name === "ValidationError") {
+        return res
+          .status(BAD_REQUEST_SC.code)
+          .send({ message: BAD_REQUEST_SC.message });
+      }
+      return res
+        .status(SERVER_ERROR_SC.code)
+        .send({ message: SERVER_ERROR_SC.message });
+    });
 };
+
+// const getUserById = (req, res) => {
+//   const { userId } = req.params;
+//   User.findById(userId)
+//     .orFail()
+//     .then((user) => res.status(200).send(user))
+//     .catch((err) => {
+//       console.log(err);
+//       if (err.name === "DocumentNotFoundError") {
+//         return res
+//           .status(NOT_FOUND_SC.code)
+//           .send({ message: NOT_FOUND_SC.message });
+//       }
+//       if (err.name === "CastError") {
+//         return res
+//           .status(BAD_REQUEST_SC.code)
+//           .send({ message: BAD_REQUEST_SC.message });
+//       }
+//       return res
+//         .status(SERVER_ERROR_SC.code)
+//         .send({ message: SERVER_ERROR_SC.message });
+//     });
+// };
+
+// const findUserByCredentials = (email, password) => {
+//   return User.findOne({ email })
+//     .select("+password")
+//     .then((user) => {
+//       if (!user) {
+//         return Promise.reject(new Error("User not found"));
+//       }
+//       return bcrypt.compare(password, user.password).then((isMatch) => {
+//         if (!isMatch) {
+//           return Promise.reject(new Error("Invalid email or password"));
+//         }
+//         return user;
+//       });
+//     });
+// };
 
 const login = (req, res) => {
   const { email, password } = req.body;
@@ -116,15 +187,20 @@ const updateProfile = (req, res) => {
     { name, avatar },
     { new: true, runValidators: true }
   )
-    .orFail()
-    .then((user) =>
-      res.send({
-        user: {
-          name: user.name,
-          avatar: user.avatar,
-        },
-      })
-    )
+    .then((data) => {
+      const updatedUser = {
+        _id: data._id,
+        name: data.name,
+        email: data.email,
+        avatar: data.avatar,
+      };
+      if (!updatedUser) {
+        return res
+          .status(NOT_FOUND_SC.code)
+          .send({ message: NOT_FOUND_SC.message });
+      }
+      return res.status(200).send(updatedUser);
+    })
     .catch((err) => {
       console.log(err);
       if (err.name === "ValidationError") {
@@ -139,8 +215,11 @@ const updateProfile = (req, res) => {
 };
 
 module.exports = {
+  // getUsers,
   createUser,
   getCurrentUser,
+  // getUserById,
+  // findUserByCredentials,
   login,
   updateProfile,
 };

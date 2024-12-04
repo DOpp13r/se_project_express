@@ -9,8 +9,14 @@ const { PORT = 3001 } = process.env;
 
 app.use(cors());
 app.use(express.json());
-
 app.use("/", mainRouter);
+app.post("/signin", login);
+app.post("/signup", createUser);
+
+app.use((err, req, res) => {
+  res.status(err.status || 500).json({ message: err.message });
+});
+
 app.post("/signin", login);
 app.post("/signup", createUser);
 

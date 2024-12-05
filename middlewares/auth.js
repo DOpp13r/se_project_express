@@ -1,33 +1,22 @@
 const jwt = require("jsonwebtoken");
+const { JWT_SECRET } = require("../utils/config");
 const { UNAUTHORIZED_SC } = require("../utils/errors");
 
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
-
-const auth = (req, res, next) => {
-  const excludedRoutes = ["/signin", "/signup"]; // Skip authorizations for ...
-  const isExcluded = excludedRoutes.some((route) =>
-    req.originalUrl.startsWith(route)
-  );
-
-  if (isExcluded) {
-    return next();
-  }
-
+module.exports = (req, res, next) => {
   const { authorization } = req.headers;
-
-  if (!authorization || !authorization.startsWith("Bearer ")) {
-    return res.status(UNAUTHORIZED_SC.code).json(UNAUTHORIZED_SC.message);
+  if (!authorization) {
+    return res.status(UNAUTHORIZED_SC.code).json({ error: "Invalid token" });
   }
 
   const token = authorization.replace("Bearer ", "");
+  let payload;
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.user = payload;
-    return next();
+    payload = jwt.verify(token, JWT_SECRET);
   } catch (error) {
-    return res.status(UNAUTHORIZED_SC.code).json({ message: "Invalid token" });
+    console.error(err);
+    return res.status(UNAUTHORIZED_SC.code).json({ error: "Invalid token" });
   }
+  req.user = payload;
+  next();
 };
-
-module.exports = auth;

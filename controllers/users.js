@@ -1,98 +1,47 @@
+const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const User = require("../models/user");
 const { JWT_SECRET } = require("../utils/config");
 
 const {
   BAD_REQUEST_SC,
-  UNAUTHORIZED_SC,
   NOT_FOUND_SC,
-  DUPLICATE_ERROR_SC,
   SERVER_ERROR_SC,
+  UNAUTHORIZED_SC,
 } = require("../utils/errors");
-
-const getCurrentUser = (req, res) => {
-  const { _id } = req.user;
-
-  User.findById(_id)
-    .then((data) => {
-      const user = {
-        _id: data._id,
-        name: data.name,
-        email: data.email,
-        avatar: data.avatar,
-      };
-      if (!user) {
-        return res
-          .status(NOT_FOUND_SC.code)
-          .send({ message: NOT_FOUND_SC.message });
-      }
-      return res.status(200).send(user);
-    })
-    .catch((err) => {
-      console.log(err);
-      return res
-        .status(SERVER_ERROR_SC.code)
-        .send({ message: SERVER_ERROR_SC.message });
-    });
-};
 
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
 
-  if (!name || !avatar || !email || !password) {
-    return res
-      .status(BAD_REQUEST_SC.code)
-      .send({ message: "All fields are required" });
+  if (!email) {
+    return res.status(BAD_REQUEST_SC).json({ message: "Email is required" });
   }
-
   User.findOne({ email })
     .then((existingUser) => {
       if (existingUser) {
         return res
-          .status(DUPLICATE_ERROR_SC.code)
-          .send({ message: "Email already exists" });
+          .status(BAD_REQUEST_SC)
+          .json({ message: "Email is already in use" });
       }
-
-      return bcrypt
-        .hash(password, 10)
-        .then((hashedPassword) =>
-          User.create({
-            name,
-            avatar,
-            email,
-            password: hashedPassword,
-          })
-        )
-        .then((user) => {
-          const { password: UserPassword, ...userWithoutPassword } =
-            user.toObject();
-          return res.status(201).send(userWithoutPassword);
-        })
-        .catch((err) => {
-          console.log(err);
-          if (err.code === 11000) {
-            return res
-              .status(DUPLICATE_ERROR_SC.code)
-              .send({ message: DUPLICATE_ERROR_SC.message });
-          }
-          if (err.name === "ValidationError") {
-            return res
-              .status(BAD_REQUEST_SC.code)
-              .send({ message: BAD_REQUEST_SC.message });
-          }
-          return res
-            .status(SERVER_ERROR_SC.code)
-            .send({ message: SERVER_ERROR_SC.message });
-        });
+      return bcrypt.hash(password, 10);
     })
+    .then((hash) => {
+      return User.create({
+        name,
+        avatar,
+        email,
+        password: hash,
+      });
+    })
+    .then((user) =>
+      res.status(201).send({
+        name: user.name,
+        avatar: user.avatar,
+        email: user.email,
+      })
+    )
     .catch((err) => {
       console.log(err);
-      if (err.code === 11000) {
-        return res
-          .status(DUPLICATE_ERROR_SC.code)
-          .send({ message: DUPLICATE_ERROR_SC.message });
-      }
       if (err.name === "ValidationError") {
         return res
           .status(BAD_REQUEST_SC.code)
@@ -103,96 +52,79 @@ const createUser = (req, res) => {
         .send({ message: SERVER_ERROR_SC.message });
     });
 };
-
-// const getUserById = (req, res) => {
-//   const { userId } = req.params;
-//   User.findById(userId)
-//     .orFail()
-//     .then((user) => res.status(200).send(user))
-//     .catch((err) => {
-//       console.log(err);
-//       if (err.name === "DocumentNotFoundError") {
-//         return res
-//           .status(NOT_FOUND_SC.code)
-//           .send({ message: NOT_FOUND_SC.message });
-//       }
-//       if (err.name === "CastError") {
-//         return res
-//           .status(BAD_REQUEST_SC.code)
-//           .send({ message: BAD_REQUEST_SC.message });
-//       }
-//       return res
-//         .status(SERVER_ERROR_SC.code)
-//         .send({ message: SERVER_ERROR_SC.message });
-//     });
-// };
-
-// const findUserByCredentials = (email, password) => {
-//   return User.findOne({ email })
-//     .select("+password")
-//     .then((user) => {
-//       if (!user) {
-//         return Promise.reject(new Error("User not found"));
-//       }
-//       return bcrypt.compare(password, user.password).then((isMatch) => {
-//         if (!isMatch) {
-//           return Promise.reject(new Error("Invalid email or password"));
-//         }
-//         return user;
-//       });
-//     });
-// };
 
 const login = (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
     return res
-      .status(BAD_REQUEST_SC.code)
-      .send({ message: BAD_REQUEST_SC.message });
+      .status(BAD_REQUEST_SC)
+      .json({ message: "Email and password are required" });
   }
 
-  return User.findUserByCredentials(email, password)
+  User.findUserbyCredentials(email, password)
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
         expiresIn: "7d",
       });
-      return res.status(200).send({ token });
+      return res.status(200).json({ token });
     })
     .catch((err) => {
       console.log(err);
+      if (err.name === "IncorrectCredentialsError") {
+        return res
+          .status(UNAUTHORIZED_SC.code)
+          .send({ message: UNAUTHORIZED_SC.message });
+      }
       return res
-        .status(UNAUTHORIZED_SC.code)
-        .send({ message: UNAUTHORIZED_SC.message });
+        .status(SERVER_ERROR_SC.code)
+        .send({ message: SERVER_ERROR_SC.message });
     });
 };
 
-const updateProfile = (req, res) => {
-  const { name, avatar } = req.body;
+const getCurrentUser = (req, res) => {
   const { _id } = req.user;
+  User.findById(_id)
+    .orFail()
+    .then((user) => {
+      res.send({
+        user: { name: user.name, avatar: user.avatar, email: user.email },
+      });
+    })
+    .catch((err) => {
+      console.error(err);
+      return res
+        .status(SERVER_ERROR_SC.code)
+        .send({ message: SERVER_ERROR_SC.message });
+    });
+};
+
+const updateUser = (req, res) => {
+  const { name, avatar } = req.body;
 
   User.findByIdAndUpdate(
-    _id,
+    req.user._id,
     { name, avatar },
-    { new: true, runValidators: true }
+    {
+      new: true,
+      runValidators: true,
+    }
   )
-    .then((data) => {
-      const updatedUser = {
-        _id: data._id,
-        name: data.name,
-        email: data.email,
-        avatar: data.avatar,
-      };
-      if (!updatedUser) {
+    .orFail()
+    .then((user) => {
+      if (!user) {
+        return Promise.reject(new Error("User not found"));
+      }
+      res.send({ user });
+    })
+    .catch((err) => {
+      console.log(err);
+      if (err.name === "DocumentNotFoundError") {
         return res
           .status(NOT_FOUND_SC.code)
           .send({ message: NOT_FOUND_SC.message });
       }
-      return res.status(200).send(updatedUser);
-    })
-    .catch((err) => {
-      console.log(err);
-      if (err.name === "ValidationError") {
+      if (err.name === "CastError") {
         return res
           .status(BAD_REQUEST_SC.code)
           .send({ message: BAD_REQUEST_SC.message });
@@ -203,12 +135,4 @@ const updateProfile = (req, res) => {
     });
 };
 
-module.exports = {
-  // getUsers,
-  createUser,
-  getCurrentUser,
-  // getUserById,
-  // findUserByCredentials,
-  login,
-  updateProfile,
-};
+module.exports = { createUser, login, getCurrentUser, updateUser };

@@ -27,33 +27,30 @@ const userSchema = new mongoose.Schema({
       validator(value) {
         return validator.isEmail(value);
       },
-      message: "You must enter a valid email address",
+      message: "You must enter a valid email",
     },
   },
   password: {
     type: String,
     required: true,
-    minlength: 8,
     select: false,
+    minlength: 8,
   },
 });
 
-userSchema.statics.findUserByCredentials = function findUserByCredentials(
-  email,
-  password
-) {
+userSchema.statics.findUserByCredentials = function (email, password) {
   return this.findOne({ email })
     .select("+password")
     .then((user) => {
       if (!user) {
-        return Promise.reject(new Error("Incorrect email or password"));
+        return Promise.reject(new Error("Invalid email or password"));
       }
-
-      const isValidPassword = bcrypt.compare(password, user.password);
-      if (!isValidPassword) {
-        return Promise.reject(new Error("Incorrect email or password"));
-      }
-      return user;
+      return bcrypt.compare(password, user.password).then((matched) => {
+        if (!matched) {
+          return Promise.reject(new Error("Invalid email or password"));
+        }
+        return user;
+      });
     });
 };
 

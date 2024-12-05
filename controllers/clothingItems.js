@@ -2,9 +2,9 @@ const mongoose = require("mongoose");
 const clothingItem = require("../models/clothingItem");
 const {
   BAD_REQUEST_SC,
-  FORBIDDEN_SC,
   NOT_FOUND_SC,
   SERVER_ERROR_SC,
+  FORBIDDEN_SC,
 } = require("../utils/errors");
 
 const getItems = (req, res) => {
@@ -42,20 +42,18 @@ const deleteItem = (req, res) => {
   console.log(itemId);
   const userId = req.user._id;
 
-  clothingItem
+  return clothingItem
     .findById(itemId)
     .orFail()
     .then((item) => {
       if (item.owner.toString() !== userId) {
         return res
           .status(FORBIDDEN_SC.code)
-          .send({ message: "User not granted for delete item" });
+          .send({ message: "User not authorized to delete item" });
       }
       return clothingItem.findByIdAndDelete(itemId);
-    });
-  return res
-    .status(200)
-    .send({ item, message: "Item deleted" })
+    })
+    .then((item) => res.status(200).send({ item, message: "Item deleted" }))
     .catch((err) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {

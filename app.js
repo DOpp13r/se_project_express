@@ -10,6 +10,7 @@ const { PORT = 3001 } = process.env;
 app.use(cors());
 app.use(express.json());
 app.use("/", mainRouter);
+
 app.post("/signin", login);
 app.post("/signup", createUser);
 

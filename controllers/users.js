@@ -1,8 +1,6 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const { JWT_SECRET } = require("../utils/config");
 
 const {
@@ -11,37 +9,41 @@ const {
   NOT_FOUND_SC,
   DUPLICATE_ERROR_SC,
   SERVER_ERROR_SC,
-  UNAUTHORIZED_SC,
 } = require("../utils/errors");
 
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
 
-  if (!email) {
-    return res.status(BAD_REQUEST_SC).json({ message: "Email is required" });
+  if (!email || !password) {
+    return res
+      .status(DUPLICATE_ERROR_SC.code)
+      .json({ message: "Email and password are required" });
   }
-  User.findOne({ email })
+
+  return User.findOne({ email })
     .then((existingUser) => {
       if (existingUser) {
         return res
-          .status(BAD_REQUEST_SC)
+          .status(BAD_REQUEST_SC.code)
           .json({ message: "Email is already in use" });
       }
       return bcrypt.hash(password, 10);
     })
-    .then((hash) => {
-      return User.create({
+    .then((hash) =>
+      User.create({
         name,
         avatar,
         email,
         password: hash,
-      });
-    })
+      })
+    )
     .then((user) =>
       res.status(201).send({
-        name: user.name,
-        avatar: user.avatar,
-        email: user.email,
+        user: {
+          name: user.name,
+          avatar: user.avatar,
+          email: user.email,
+        },
       })
     )
     .catch((err) => {
@@ -62,16 +64,16 @@ const login = (req, res) => {
 
   if (!email || !password) {
     return res
-      .status(BAD_REQUEST_SC)
+      .status(BAD_REQUEST_SC.code)
       .json({ message: "Email and password are required" });
   }
 
-  User.findUserbyCredentials(email, password)
+  return User.findUserbyCredentials(email, password)
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
         expiresIn: "7d",
       });
-      return res.status(200).json({ token });
+      res.status(200).json({ token });
     })
     .catch((err) => {
       console.log(err);
@@ -90,11 +92,11 @@ const getCurrentUser = (req, res) => {
   const { _id } = req.user;
   User.findById(_id)
     .orFail()
-    .then((user) => {
+    .then((user) =>
       res.send({
         user: { name: user.name, avatar: user.avatar, email: user.email },
-      });
-    })
+      })
+    )
     .catch((err) => {
       console.error(err);
       return res
@@ -115,12 +117,9 @@ const updateUser = (req, res) => {
     }
   )
     .orFail()
-    .then((user) => {
-      if (!user) {
-        return Promise.reject(new Error("User not found"));
-      }
-      res.send({ user });
-    })
+    .then((user) =>
+      res.send({ user: { name: user.name, avatar: user.avatar } })
+    )
     .catch((err) => {
       console.log(err);
       if (err.name === "DocumentNotFoundError") {

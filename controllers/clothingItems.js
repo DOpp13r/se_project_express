@@ -51,9 +51,20 @@ const deleteItem = (req, res) => {
           .status(FORBIDDEN_SC.code)
           .send({ message: "User not authorized to delete item" });
       }
-      return clothingItem.findByIdAndDelete(itemId);
+
+      return clothingItem
+        .findByIdAndDelete(itemId)
+        .orFail()
+        .then((deletedItem) =>
+          res.status(200).send({ deletedItem, message: "Item deleted" })
+        )
+        .catch((err) => {
+          console.error(err);
+          return res
+            .status(SERVER_ERROR_SC.code)
+            .send({ message: SERVER_ERROR_SC.message });
+        });
     })
-    .then((item) => res.status(200).send({ item, message: "Item deleted" }))
     .catch((err) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {
@@ -99,11 +110,6 @@ const likeItem = (req, res) => {
     })
     .catch((err) => {
       console.error(err);
-      if (err.statusCode === NOT_FOUND_SC.code) {
-        return res
-          .status(NOT_FOUND_SC.code)
-          .send({ message: NOT_FOUND_SC.message });
-      }
       return res
         .status(SERVER_ERROR_SC.code)
         .send({ message: SERVER_ERROR_SC.message });
@@ -137,11 +143,6 @@ const dislikeItem = (req, res) => {
     })
     .catch((err) => {
       console.error(err);
-      if (err.statusCode === NOT_FOUND_SC.code) {
-        return res
-          .status(NOT_FOUND_SC.code)
-          .send({ message: NOT_FOUND_SC.message });
-      }
       return res
         .status(SERVER_ERROR_SC.code)
         .send({ message: SERVER_ERROR_SC.message });

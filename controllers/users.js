@@ -14,7 +14,7 @@ const {
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
 
-  if (!email || !password) {
+  if (!name || !avatar || !email || !password) {
     return res
       .status(BAD_REQUEST_SC.code)
       .json({ message: "Email and password are required" });
@@ -35,23 +35,27 @@ const createUser = (req, res) => {
           email,
           password: hash,
         })
-      )
-      .then((user) =>
-        res.status(201).send({
-          user: {
-            name: user.name,
-            avatar: user.avatar,
-            email: user.email,
-          },
-        })
+          .then((user) =>
+            res.status(201).send({
+              name: user.name,
+              avatar: user.avatar,
+              email: user.email,
+            })
+          )
+          .catch((err) => {
+            console.log(err);
+            if (err.name === "ValidationError") {
+              return res
+                .status(BAD_REQUEST_SC.code)
+                .send({ message: BAD_REQUEST_SC.message });
+            }
+            return res
+              .status(SERVER_ERROR_SC.code)
+              .send({ message: SERVER_ERROR_SC.message });
+          })
       )
       .catch((err) => {
         console.log(err);
-        if (err.name === "ValidationError") {
-          return res
-            .status(BAD_REQUEST_SC.code)
-            .send({ message: BAD_REQUEST_SC.message });
-        }
         return res
           .status(SERVER_ERROR_SC.code)
           .send({ message: SERVER_ERROR_SC.message });

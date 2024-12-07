@@ -8,7 +8,7 @@ const { NOT_FOUND_SC } = require("../utils/errors");
 router.post("/signup", createUser);
 router.post("/signin", login);
 
-router.use("/", userRouter);
+router.use("/users", userRouter);
 router.use("/items", clothingItemsRouter);
 
 router.use((req, res) => {

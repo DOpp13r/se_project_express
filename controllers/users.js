@@ -14,7 +14,7 @@ const {
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
 
-  if (!name || !avatar || !email || !password) {
+  if (!email || !password) {
     return res
       .status(BAD_REQUEST_SC.code)
       .json({ message: "Email and password are required" });
@@ -81,7 +81,7 @@ const login = (req, res) => {
     })
     .catch((err) => {
       console.log(err);
-      if (err.name === "Invalid email or password") {
+      if (err.message === "Invalid email or password") {
         return res
           .status(UNAUTHORIZED_SC.code)
           .send({ message: UNAUTHORIZED_SC.message });

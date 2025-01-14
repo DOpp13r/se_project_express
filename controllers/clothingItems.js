@@ -118,7 +118,6 @@ const likeItem = (req, res) => {
 
 const dislikeItem = (req, res) => {
   const { itemId } = req.params;
-  console.log(`Disliking item with ID: ${itemId}`);
 
   // Validate the itemId
   if (!mongoose.Types.ObjectId.isValid(itemId)) {

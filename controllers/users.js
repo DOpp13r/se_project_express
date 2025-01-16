@@ -98,7 +98,12 @@ const getCurrentUser = (req, res) => {
     .orFail()
     .then((user) =>
       res.send({
-        user: { name: user.name, avatar: user.avatar, email: user.email },
+        user: {
+          name: user.name,
+          avatar: user.avatar,
+          email: user.email,
+          _id: user._id,
+        },
       })
     )
     .catch((err) => {

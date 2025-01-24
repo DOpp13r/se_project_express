@@ -3,28 +3,21 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const { JWT_SECRET } = require("../utils/config");
 
-const {
-  BAD_REQUEST_SC,
-  UNAUTHORIZED_SC,
-  NOT_FOUND_SC,
-  DUPLICATE_ERROR_SC,
-  SERVER_ERROR_SC,
-} = require("../utils/errors");
+const { BadRequestError } = require("../utils/errors/BadRequestError");
+const { NotFoundError } = require("../utils/errors/NotFoundError");
+const { UnauthorizedError } = require("../utils/errors/UnauthorizedError");
+const { ConflictError } = require("../utils/errors/ConflictError");
 
-const createUser = (req, res) => {
+const createUser = (req, res, next) => {
   const { name, avatar, email, password } = req.body;
 
   if (!email || !password) {
-    return res
-      .status(BAD_REQUEST_SC.code)
-      .json({ message: "Email and password are required" });
+    return next(new BadRequestError("Email and password are required"));
   }
 
   return User.findOne({ email }).then((existingUser) => {
     if (existingUser) {
-      return res
-        .status(DUPLICATE_ERROR_SC.code)
-        .json({ message: "Email is already in use" });
+      return next(new ConflictError("Email is already in use"));
     }
     return bcrypt
       .hash(password, 10)
@@ -45,31 +38,23 @@ const createUser = (req, res) => {
           .catch((err) => {
             console.log(err);
             if (err.name === "ValidationError") {
-              return res
-                .status(BAD_REQUEST_SC.code)
-                .send({ message: BAD_REQUEST_SC.message });
+              return next(new BadRequestError("Invalid request"));
             }
-            return res
-              .status(SERVER_ERROR_SC.code)
-              .send({ message: SERVER_ERROR_SC.message });
+            return next(err);
           })
       )
       .catch((err) => {
         console.log(err);
-        return res
-          .status(SERVER_ERROR_SC.code)
-          .send({ message: SERVER_ERROR_SC.message });
+        return next(err);
       });
   });
 };
 
-const login = (req, res) => {
+const login = (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res
-      .status(BAD_REQUEST_SC.code)
-      .json({ message: "Email and password are required" });
+    return next(new BadRequestError("Invalid request"));
   }
 
   return User.findUserByCredentials(email, password)
@@ -82,17 +67,13 @@ const login = (req, res) => {
     .catch((err) => {
       console.log(err);
       if (err.message === "Invalid email or password") {
-        return res
-          .status(UNAUTHORIZED_SC.code)
-          .send({ message: UNAUTHORIZED_SC.message });
+        return next(new UnauthorizedError("Invalid email or password"));
       }
-      return res
-        .status(SERVER_ERROR_SC.code)
-        .send({ message: SERVER_ERROR_SC.message });
+      return next(err);
     });
 };
 
-const getCurrentUser = (req, res) => {
+const getCurrentUser = (req, res, next) => {
   const { _id } = req.user;
   User.findById(_id)
     .orFail()
@@ -108,13 +89,11 @@ const getCurrentUser = (req, res) => {
     )
     .catch((err) => {
       console.error(err);
-      return res
-        .status(SERVER_ERROR_SC.code)
-        .send({ message: SERVER_ERROR_SC.message });
+      return next(err);
     });
 };
 
-const updateUser = (req, res) => {
+const updateUser = (req, res, next) => {
   const { name, avatar } = req.body;
 
   User.findByIdAndUpdate(
@@ -132,18 +111,12 @@ const updateUser = (req, res) => {
     .catch((err) => {
       console.log(err);
       if (err.name === "DocumentNotFoundError") {
-        return res
-          .status(NOT_FOUND_SC.code)
-          .send({ message: NOT_FOUND_SC.message });
+        return next(new NotFoundError("User not found"));
       }
       if (err.name === "ValidationError") {
-        return res
-          .status(BAD_REQUEST_SC.code)
-          .send({ message: BAD_REQUEST_SC.message });
+        return next(new BadRequestError("Invalid data"));
       }
-      return res
-        .status(SERVER_ERROR_SC.code)
-        .send({ message: SERVER_ERROR_SC.message });
+      return next(err);
     });
 };
 

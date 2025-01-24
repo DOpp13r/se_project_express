@@ -1,24 +1,19 @@
 const mongoose = require("mongoose");
 const clothingItem = require("../models/clothingItem");
-const {
-  BAD_REQUEST_SC,
-  NOT_FOUND_SC,
-  SERVER_ERROR_SC,
-  FORBIDDEN_SC,
-} = require("../utils/errors");
+const { BadRequestError } = require("../utils/errors/BadRequestError");
+const { NotFoundError } = require("../utils/errors/NotFoundError");
+const { ForbiddenError } = require("../utils/errors/ForbiddenError");
 
-const getItems = (req, res) => {
+const getItems = (req, res, next) => {
   clothingItem
     .find({})
     .then((items) => res.status(200).send({ data: items }))
     .catch(() => {
-      res
-        .status(SERVER_ERROR_SC.code)
-        .send({ message: SERVER_ERROR_SC.message });
+      return next(err);
     });
 };
 
-const createItem = (req, res) => {
+const createItem = (req, res, next) => {
   const { name, weather, imageUrl } = req.body;
   const owner = req.user._id;
   clothingItem
@@ -27,17 +22,13 @@ const createItem = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "ValidationError") {
-        return res
-          .status(BAD_REQUEST_SC.code)
-          .send({ message: BAD_REQUEST_SC.message });
+        return next(new BadRequestError("Invalid request"));
       }
-      return res
-        .status(SERVER_ERROR_SC.code)
-        .send({ message: SERVER_ERROR_SC.message });
+      return next(err);
     });
 };
 
-const deleteItem = (req, res) => {
+const deleteItem = (req, res, next) => {
   const { itemId } = req.params;
   console.log(itemId);
   const userId = req.user._id;
@@ -47,9 +38,9 @@ const deleteItem = (req, res) => {
     .orFail()
     .then((item) => {
       if (item.owner.toString() !== userId) {
-        return res
-          .status(FORBIDDEN_SC.code)
-          .send({ message: "User not authorized to delete item" });
+        return next(
+          new ForbiddenError("You don't have permission to delete this item")
+        );
       }
 
       return clothingItem
@@ -60,38 +51,28 @@ const deleteItem = (req, res) => {
         )
         .catch((err) => {
           console.error(err);
-          return res
-            .status(SERVER_ERROR_SC.code)
-            .send({ message: SERVER_ERROR_SC.message });
+          return next(err);
         });
     })
     .catch((err) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {
-        return res
-          .status(NOT_FOUND_SC.code)
-          .send({ message: NOT_FOUND_SC.message });
+        return next(new NotFoundError("Item not found"));
       }
       if (err.name === "CastError") {
-        return res
-          .status(BAD_REQUEST_SC.code)
-          .send({ message: BAD_REQUEST_SC.message });
+        return next(new BadRequestError("Invalid request"));
       }
-      return res
-        .status(SERVER_ERROR_SC.code)
-        .send({ message: SERVER_ERROR_SC.message });
+      return next(err);
     });
 };
 
-const likeItem = (req, res) => {
+const likeItem = (req, res, next) => {
   const { itemId } = req.params;
   console.log(itemId);
 
   // Validate the itemId
   if (!mongoose.Types.ObjectId.isValid(itemId)) {
-    return res
-      .status(BAD_REQUEST_SC.code)
-      .send({ message: BAD_REQUEST_SC.message });
+    return next(new BadRequestError("Invalid item ID"));
   }
 
   return clothingItem
@@ -102,28 +83,22 @@ const likeItem = (req, res) => {
     )
     .then((item) => {
       if (!item) {
-        return res
-          .status(NOT_FOUND_SC.code)
-          .send({ message: "Item not found" });
+        return next(new NotFoundError("Item not found"));
       }
       return res.status(200).send({ item });
     })
     .catch((err) => {
       console.error(err);
-      return res
-        .status(SERVER_ERROR_SC.code)
-        .send({ message: SERVER_ERROR_SC.message });
+      return next(err);
     });
 };
 
-const dislikeItem = (req, res) => {
+const dislikeItem = (req, res, next) => {
   const { itemId } = req.params;
 
   // Validate the itemId
   if (!mongoose.Types.ObjectId.isValid(itemId)) {
-    return res
-      .status(BAD_REQUEST_SC.code)
-      .send({ message: BAD_REQUEST_SC.message });
+    return next(new BadRequestError("Invalid item ID"));
   }
 
   return clothingItem
@@ -134,17 +109,13 @@ const dislikeItem = (req, res) => {
     )
     .then((item) => {
       if (!item) {
-        return res
-          .status(NOT_FOUND_SC.code)
-          .send({ message: "Item not found" });
+        return next(new NotFoundError("Item not found"));
       }
       return res.status(200).send({ item });
     })
     .catch((err) => {
       console.error(err);
-      return res
-        .status(SERVER_ERROR_SC.code)
-        .send({ message: SERVER_ERROR_SC.message });
+      return next(err);
     });
 };
 

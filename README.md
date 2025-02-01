@@ -2,6 +2,10 @@
 
 The back-end project is focused on creating a server for the WTWR application. This project begins the utilization of working with databases, setting up security and testing, and deploying web applications on a remote machine. The eventual goal is to create a server with an API and user authorization.
 
+Domain: https://gcp-walkthrough.crabdance.com/
+
+Link to the front-end repo: https://github.com/DOpp13r/se_project_react
+
 ## Overview and Objectives of the Project
 
 During this stage of the project, we will

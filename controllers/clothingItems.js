@@ -1,14 +1,15 @@
 const mongoose = require("mongoose");
 const clothingItem = require("../models/clothingItem");
-const { BadRequestError } = require("../utils/errors/BadRequestError");
-const { NotFoundError } = require("../utils/errors/NotFoundError");
-const { ForbiddenError } = require("../utils/errors/ForbiddenError");
+const BadRequestError = require("../utils/errors/BadRequestError");
+const NotFoundError = require("../utils/errors/NotFoundError");
+const ForbiddenError = require("../utils/errors/ForbiddenError");
 
 const getItems = (req, res, next) => {
   clothingItem
     .find({})
     .then((items) => res.status(200).send({ data: items }))
-    .catch(() => {
+    .catch((err) => {
+      console.error(err);
       return next(err);
     });
 };

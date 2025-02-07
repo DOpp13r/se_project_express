@@ -1,11 +1,11 @@
 const jwt = require("jsonwebtoken");
 const { JWT_SECRET } = require("../utils/config");
-const { UNAUTHORIZED_SC } = require("../utils/errors");
+const UnauthorizedError = require("../utils/errors/UnauthorizedError");
 
 module.exports = (req, res, next) => {
   const { authorization } = req.headers;
   if (!authorization) {
-    return res.status(UNAUTHORIZED_SC.code).json({ error: "Invalid token" });
+    throw new UnauthorizedError("Invalid token");
   }
 
   const token = authorization.replace("Bearer ", "");
@@ -15,7 +15,7 @@ module.exports = (req, res, next) => {
     payload = jwt.verify(token, JWT_SECRET);
   } catch (err) {
     console.error(err);
-    return res.status(UNAUTHORIZED_SC.code).json({ error: "Invalid token" });
+    throw new UnauthorizedError("Invalid token");
   }
   req.user = payload;
   return next();

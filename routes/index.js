@@ -15,8 +15,8 @@ router.post("/signin", validateLogin, login);
 router.use("/users", userRouter);
 router.use("/items", clothingItemsRouter);
 
-router.use((req, res) => {
-  throw new NotFoundError("Route not found");
+router.use((next) => {
+  next(new NotFoundError("Route not found"));
 });
 
 module.exports = router;

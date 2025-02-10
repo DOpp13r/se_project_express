@@ -84,7 +84,7 @@ module.exports.validateLogin = celebrate({
 // user and clothing item IDs when accessed
 module.exports.validateID = celebrate({
   params: Joi.object().keys({
-    id: Joi.string().required().hex().length(24).messages({
+    itemId: Joi.string().required().hex().length(24).messages({
       "string.length": "The 'ID' must be 24 characters long",
       "string.empty": "The 'ID' field must be filled in",
     }),
